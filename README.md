@@ -41,8 +41,7 @@ The system consists of two interconnected n8n workflows:
             ➡️ `Google Sheets4: Log to Sheet` (Logs all check results)
 
 **Visual Overview:**
-*(You will embed your screenshot of the monitoring workflow here)*
-![Monitoring Workflow Overview](path/to/your/monitoring_workflow_screenshot.png)
+![Monitoring Workflow Overview](Website_Monitoring_Workflow.png)
 
 **N8N Workflow File:**
 The complete JSON export for this workflow is available in the repository as `monitoring_workflow.json`.
@@ -62,8 +61,7 @@ The complete JSON export for this workflow is available in the repository as `mo
         ➡️ `Gmail: Send Report` (Dispatches the weekly report)
 
 **Visual Overview:**
-*(You will embed your screenshot of the weekly report workflow here)*
-![Weekly Report Workflow Overview](path/to/your/weekly_report_workflow_screenshot.png)
+![Weekly Report Workflow Overview](Report_Workflow.png)
 
 **N8N Workflow File:**
 The complete JSON export for this workflow is available in the repository as `weekly_report.json`.
@@ -159,21 +157,6 @@ Ensure your Google Sheet (e.g., named "Website Monitoring Log") has the followin
 
 ---
 
-## ✅ Deliverables (for Assessment Submission)
-
-This repository includes the following deliverables as part of the technical assessment:
-
-* `monitoring_workflow.json`: The completed n8n workflow for real-time website monitoring.
-* `weekly_report.json`: The completed n8n workflow for generating weekly performance reports.
-* `final_documentation.docx`: Comprehensive documentation explaining the workflow setup, logic, and all manual configuration steps.
-* **Screenshots (within this README.md and/or separate files):**
-    * Workflow overview for both `monitoring_workflow.json` and `weekly_report.json`.
-    * Screenshot demonstrating successful monitoring execution.
-    * Screenshot demonstrating an alert trigger example.
-    * Screenshot demonstrating Google Sheets data logging.
-
----
-
 ## 💡 Additional Notes & Considerations
 
 * **IRCTC Specifics:** Be aware that some high-security sites like `irctc.co.in` might block or rate-limit automated requests, potentially leading to expected "Down" results in logs. This serves as a good test for the workflow's error handling.
@@ -183,4 +166,4 @@ This repository includes the following deliverables as part of the technical ass
 
 ---
 
-**Author:** [Your Name Here]
+**Author:** Harshit Vishnoi 
