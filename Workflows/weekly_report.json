@@ -1,0 +1,165 @@
+{
+  "name": "weekly_report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -220,
+        40
+      ],
+      "id": "dd66779d-de06-4715-955a-d3b456cf440d",
+      "name": "Trigger on Monday 9 am"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1vVAi9VAmtxbmwiG8MO-jlHuyLb5iDZWJ8uG-I_jna8c/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vVAi9VAmtxbmwiG8MO-jlHuyLb5iDZWJ8uG-I_jna8c/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        0,
+        40
+      ],
+      "id": "c481ace9-340e-4a18-adc1-95005b00d77c",
+      "name": "Checking Logs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2h5uF6Rtese3UR6T",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const logs = $input.all().map(item => item.json);\n\n// Group data by website\nconst grouped = {};\nfor (const log of logs) {\n  const url = log[\"Websites URLs\"];\n  const time = log[\"Timestamp\"];\n  const responseTime = parseFloat(log[\"Response Time (ms)\"]) || 0;\n\n  if (!grouped[url]) grouped[url] = { times: [], values: [], entries: [] };\n  grouped[url].times.push(time);\n  grouped[url].values.push(responseTime);\n  grouped[url].entries.push(log);\n}\n\n// Prepare chart\nconst firstWebsite = Object.keys(grouped)[0];\nconst labels = grouped[firstWebsite].times.map(ts => ts.split(',')[1]?.trim() || ts);\n\nconst colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];\n\nconst datasets = Object.entries(grouped).map(([url, data], index) => ({\n  label: url,\n  data: data.values,\n  fill: false,\n  borderColor: colors[index % colors.length],\n  backgroundColor: colors[index % colors.length],\n  tension: 0.3,\n  pointRadius: 4,\n  pointHoverRadius: 6\n}));\n\nconst chartConfig = {\n  type: 'line',\n  data: {\n    labels,\n    datasets\n  },\n  options: {\n    responsive: true,\n    plugins: {\n      title: {\n        display: true,\n        text: '📈 Website Response Time Trends',\n        font: {\n          size: 18\n        }\n      },\n      legend: {\n        position: 'bottom'\n      }\n    },\n    scales: {\n      y: {\n        beginAtZero: true,\n        title: {\n          display: true,\n          text: 'Response Time (ms)'\n        }\n      },\n      x: {\n        title: {\n          display: true,\n          text: 'Time'\n        }\n      }\n    }\n  }\n};\n\nconst chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}&width=800&height=400&backgroundColor=white`;\n\n// Generate report summary\nconst report = [];\n\nfor (const url in grouped) {\n  const entries = grouped[url].entries;\n  const total = entries.length;\n  const upCount = entries.filter(e => e['Status']?.toLowerCase() === 'up').length;\n  const downCount = total - upCount;\n\n  const responseTimes = entries.map(e => parseFloat(e['Response Time (ms)']) || 0);\n  const avgResponse = responseTimes.reduce((a, b) => a + b, 0) / total;\n  const maxDowntime = Math.max(...responseTimes);\n\n  report.push({\n    website: url,\n    totalChecks: total,\n    sitesUp: upCount,\n    sitesDown: downCount,\n    uptimePercent: ((upCount / total) * 100).toFixed(2),\n    avgResponseTimeMs: avgResponse.toFixed(2),\n    longestDowntimeMs: maxDowntime\n  });\n}\n\n// Output\nreturn [{\n  json: {\n    date: new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }),\n    chartUrl,\n    report\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        40
+      ],
+      "id": "21ee0885-eabd-47e3-bcca-63800356153d",
+      "name": "Generating Report with graph"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst chartUrl = data.chartUrl;\nconst report = data.report;\n\nconst tableRows = report.map(site => `\n  <tr>\n    <td><a href=\"${site.website}\" target=\"_blank\">${site.website}</a></td>\n    <td>${site.uptimePercent}%</td>\n    <td>${site.avgResponseTimeMs} ms</td>\n    <td>${site.sitesDown}</td>\n    <td>${site.longestDowntimeMs} ms</td>\n  </tr>\n`).join('');\n\nconst html = `\n  <html>\n    <body style=\"font-family: Arial, sans-serif; padding: 20px;\">\n      <h2>🌐 Weekly Website Monitoring Report</h2>\n      <p>Date: <strong>${data.date}</strong></p>\n\n      <table border=\"1\" cellpadding=\"8\" cellspacing=\"0\" style=\"border-collapse: collapse; width: 100%; margin-top: 10px;\">\n        <thead style=\"background-color: #f2f2f2;\">\n          <tr>\n            <th>Website</th>\n            <th>Uptime %</th>\n            <th>Avg Response Time</th>\n            <th>Downtime Count</th>\n            <th>Longest Downtime</th>\n          </tr>\n        </thead>\n        <tbody>\n          ${tableRows}\n        </tbody>\n      </table>\n\n      <h3 style=\"margin-top: 30px;\">📊 Response Time Trends</h3>\n      <img src=\"${chartUrl}\" alt=\"Response Time Chart\" style=\"width: 100%; max-width: 800px;\" />\n\n      <p style=\"margin-top: 30px;\">Regards,<br>n8n Monitoring System</p>\n    </body>\n  </html>\n`;\n\nreturn [{\n  json: {\n    subject: `📊 Weekly Website Uptime Report - ${data.date}`,\n    body: html\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        40
+      ],
+      "id": "20a7fac5-a2f3-4577-8efd-524086065b46",
+      "name": "Formatting for sending to mail"
+    },
+    {
+      "parameters": {
+        "sendTo": "vishnoih25@gmail.com",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        660,
+        40
+      ],
+      "id": "9d481fbd-6af0-465a-92a2-be4832539adf",
+      "name": "Sending report via gmail",
+      "webhookId": "c3af8bdd-60d0-4d71-b7c4-9f356d342c4e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "M382TmdpSkTCpvfA",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger on Monday 9 am": {
+      "main": [
+        [
+          {
+            "node": "Checking Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checking Logs": {
+      "main": [
+        [
+          {
+            "node": "Generating Report with graph",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generating Report with graph": {
+      "main": [
+        [
+          {
+            "node": "Formatting for sending to mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatting for sending to mail": {
+      "main": [
+        [
+          {
+            "node": "Sending report via gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c0cd3a32-4299-4523-b612-8c63e57cc7a9",
+  "meta": {
+    "instanceId": "eb9c2d0131b4cb7e58927cf9b4ed9a2dca1cce14e74653527f1a1c2b69772363"
+  },
+  "id": "4Ho6taUwFdH460u3",
+  "tags": []
+}
